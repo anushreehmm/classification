@@ -11,7 +11,6 @@ from wordcloud import WordCloud
 import base64
 from io import BytesIO
 import dash_bootstrap_components as dbc
-import os
 
 # Initialize the app with a theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
@@ -67,25 +66,31 @@ app.layout = dbc.Container([
                 html.H5("Total Calls", className="card-title"),
                 html.H3(id="total-calls", className="text-info")
             ])
-        ], className="shadow-sm"), width=4),
+        ], className="shadow-sm"), width=3),
+        dbc.Col(dbc.Card([
+            dbc.CardBody([
+                html.H5("Service-categories", className="card-title"),
+                html.H3(id="service_cat", className="text-info")
+            ])
+        ], className="shadow-sm"), width=3),
         dbc.Col(dbc.Card([
             dbc.CardBody([
                 html.H5("Unique Issues", className="card-title"),
                 html.H3(id="unique-issues", className="text-info")
             ])
-        ], className="shadow-sm"), width=4),
+        ], className="shadow-sm"), width=3),
         dbc.Col(dbc.Card([
             dbc.CardBody([
                 html.H5("Average Calls per Day", className="card-title"),
                 html.H3(id="avg-calls-day", className="text-info")
             ])
-        ], className="shadow-sm"), width=4),
+        ], className="shadow-sm"), width=3),
     ], className="my-4"),
 
     # Graphs Row with Loading Spinners
     dbc.Row([
-        dbc.Col(dcc.Loading(dcc.Graph(id="calls-over-time"), type="circle"), width=6),
-        dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=6),
+        dbc.Col(dcc.Loading(dcc.Graph(id="calls-over-time"), type="circle"), width=3),
+        dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=9),
     ], className="mb-4"),
 
     dbc.Row([
@@ -135,6 +140,7 @@ def handle_file_upload(contents, filename):
         Output("sub-category-bar", "figure"),
         Output("word-cloud", "children"),
         Output("total-calls", "children"),
+        Output("service_cat", "children"),
         Output("unique-issues", "children"),
         Output("avg-calls-day", "children"),
     ],
@@ -144,7 +150,7 @@ def handle_file_upload(contents, filename):
 def update_dashboard(selected_categories, click_data):
     global data
     if data.empty:
-        return {}, {}, {}, html.Div("No data available"), "", "", ""
+        return {}, {}, {}, html.Div("No data available"), "0", "0", "0", "0.0"
     
     # Filter data based on selection
     if not selected_categories or "All" in selected_categories:
@@ -154,8 +160,11 @@ def update_dashboard(selected_categories, click_data):
 
     # KPI Calculations
     total_calls = len(filtered_data)
+    service_cat = filtered_data['SERVICE CATEGORY'].nunique()
+
     unique_issues = filtered_data['SERVICE- SUB CATEGORY'].nunique()
-    avg_calls_day = round(total_calls / ((filtered_data['DATE'].max() - filtered_data['DATE'].min()).days + 1), 2)
+    daily_calls = filtered_data.groupby('DATE').size()
+    avg_calls_day = round(daily_calls.mean(), 2)
 
     # Total Calls Over Time
     calls_over_time = filtered_data.groupby(filtered_data['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
@@ -194,22 +203,22 @@ def update_dashboard(selected_categories, click_data):
     word_cloud_element = html.Img(src="data:image/png;base64,{}".format(word_cloud_img), 
                                   style={'width': '100%', 'border-radius': '10px'})
 
+
     return (
-        fig_calls_over_time,
-        fig_category_distribution,
-        fig_sub_category_bar,
-        word_cloud_element,
-        total_calls,
-        unique_issues,
-        avg_calls_day,
-    )
+            fig_calls_over_time,
+            fig_category_distribution,
+            fig_sub_category_bar,
+            word_cloud_element,
+            str(total_calls),
+            str(unique_issues),
+            str(service_cat),
+            f"{avg_calls_day:.2f}",
+        )
 
 
 # Run the app
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8050))  # Default to 8050 if no port is specified
-    app.run_server(host="0.0.0.0", port=port)
-
+    app.run_server(debug=True, port=8075)
 
 
 # In[ ]:

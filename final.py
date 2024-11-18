@@ -11,6 +11,7 @@ from wordcloud import WordCloud
 import base64
 from io import BytesIO
 import dash_bootstrap_components as dbc
+import os
 
 # Initialize the app with a theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])

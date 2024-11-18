@@ -11,6 +11,7 @@ from wordcloud import WordCloud
 import base64
 from io import BytesIO
 import dash_bootstrap_components as dbc
+import os
 
 # Initialize the app with a theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
@@ -206,7 +207,9 @@ def update_dashboard(selected_categories, click_data):
 
 # Run the app
 if __name__ == "__main__":
-    app.run_server(debug=True, port=8075)
+    port = int(os.environ.get("PORT", 8050))  # Default to 8050 if no port is specified
+    app.run_server(host="0.0.0.0", port=port)
+
 
 
 # In[ ]:

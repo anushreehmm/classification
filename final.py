@@ -155,7 +155,7 @@ def update_dashboard(selected_categories, click_data):
     # KPI Calculations
     total_calls = len(filtered_data)
     unique_issues = filtered_data['SERVICE- SUB CATEGORY'].nunique()
-    avg_calls_day = round(total_calls / ((data['DATE'].max() - data['DATE'].min()).days + 1), 2)
+    avg_calls_day = round(total_calls / ((filtered_data['DATE'].max() - filtered_data['DATE'].min()).days + 1), 2)
 
     # Total Calls Over Time
     calls_over_time = filtered_data.groupby(filtered_data['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')

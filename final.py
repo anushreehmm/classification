@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
-
-
 import pandas as pd
-from dash import Dash, dcc, html, Input, Output, State, ctx
+from dash import Dash, dcc, html, Input, Output, State
 import plotly.express as px
-from wordcloud import WordCloud
-import base64
 from io import BytesIO
+import base64
 import dash_bootstrap_components as dbc
 import os
 
@@ -70,13 +66,13 @@ app.layout = dbc.Container([
         ], className="shadow-sm"), width=3),
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Service-categories", className="card-title"),
+                html.H5("Service Categories", className="card-title"),
                 html.H3(id="service_cat", className="text-info")
             ])
         ], className="shadow-sm"), width=3),
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Sub-Service categories", className="card-title"),
+                html.H5("Sub-Service Categories", className="card-title"),
                 html.H3(id="unique-issues", className="text-info")
             ])
         ], className="shadow-sm"), width=3),
@@ -95,18 +91,18 @@ app.layout = dbc.Container([
     ], className="mb-4"),
 
     dbc.Row([
-    dbc.Col(dcc.Loading(dcc.Graph(id="sub-category-bar"), type="circle"), width=6),
-    dbc.Col(html.Div(id='resolutions-list', style={
-        'border': '1px solid #ccc',
-        'padding': '15px',
-        'border-radius': '10px',
-        'height': '400px',
-        'overflow-y': 'scroll',
-        'background-color': '#f8f9fa',
-        'color': '#212529'
-    }), width=6),
-], className="my-4")
-
+        dbc.Col(dcc.Loading(dcc.Graph(id="sub-category-bar"), type="circle"), width=6),
+        dbc.Col(html.Div(id='resolutions-list', style={
+            'border': '1px solid #ccc',
+            'padding': '15px',
+            'border-radius': '10px',
+            'height': '400px',
+            'overflow-y': 'scroll',
+            'background-color': '#f8f9fa',
+            'color': '#212529'
+        }), width=6),
+    ], className="my-4"),
+])
 
 # Global variable to store data
 data = pd.DataFrame()
@@ -153,26 +149,29 @@ def handle_file_upload(contents, filename):
         Output("unique-issues", "children"),
         Output("avg-calls-day", "children"),
     ],
-    [Input("category-dropdown", "value"),
-     Input("category-distribution", "clickData"),
-     Input("sub-category-bar", "clickData"),
-]
+    [
+        Input("category-dropdown", "value"),
+        Input("category-distribution", "clickData"),
+        Input("sub-category-bar", "clickData"),
+    ]
 )
-def update_dashboard(selected_categories, click_data):
+def update_dashboard(selected_categories, category_click_data, sub_category_click_data):
     global data
     if data.empty:
         return {}, {}, {}, html.Div("No data available"), "0", "0", "0", "0.0"
-    
-    # Filter data based on selection
-    if not selected_categories or "All" in selected_categories:
-        filtered_data = data
-    else:
+
+    # Handle click on the pie chart
+    if category_click_data:
+        selected_service_category = category_click_data['points'][0]['label']
+        filtered_data = data[data['SERVICE CATEGORY'] == selected_service_category]
+    elif selected_categories and "All" not in selected_categories:
         filtered_data = data[data['SERVICE CATEGORY'].isin(selected_categories)]
+    else:
+        filtered_data = data
 
     # KPI Calculations
     total_calls = len(filtered_data)
     service_cat = filtered_data['SERVICE CATEGORY'].nunique()
-
     unique_issues = filtered_data['SERVICE- SUB CATEGORY'].nunique()
     daily_calls = filtered_data.groupby('DATE').size()
     avg_calls_day = round(daily_calls.mean(), 2)
@@ -185,27 +184,17 @@ def update_dashboard(selected_categories, click_data):
     fig_calls_over_time.update_layout(hovermode="x unified", title_x=0.5)
 
     # Service Category Distribution (Pie Chart)
-    category_counts = filtered_data['SERVICE CATEGORY'].value_counts().reset_index()
+    category_counts = data['SERVICE CATEGORY'].value_counts().reset_index()
     category_counts.columns = ['SERVICE CATEGORY', 'Count']
     fig_category_distribution = px.pie(category_counts, values="Count", names="SERVICE CATEGORY",
                                        title="Service Category Distribution", template="plotly_dark")
     fig_category_distribution.update_traces(textinfo="percent+label", pull=[0.05 for _ in category_counts['SERVICE CATEGORY']])
 
-    # Sub-Service Category (Dynamic Bar Chart)
-    if click_data:
-        selected_service_category = click_data['points'][0]['label']
-        sub_category_data = filtered_data[filtered_data['SERVICE CATEGORY'] == selected_service_category]
-    else:
-        sub_category_data = filtered_data
-
-    sub_category_counts = sub_category_data['SERVICE- SUB CATEGORY'].value_counts().reset_index()
+    # Sub-Service Category Bar Chart
+    sub_category_counts = filtered_data['SERVICE- SUB CATEGORY'].value_counts().reset_index()
     sub_category_counts.columns = ['SERVICE- SUB CATEGORY', 'Count']
-    fig_sub_category_bar = px.bar(sub_category_counts, x="SERVICE- SUB CATEGORY", y="Count",
-                                  title="Sub-Service Categories", text="Count", template="plotly_dark")
-    fig_sub_category_bar.update_traces(marker_color="royalblue")
-    fig_sub_category_bar.update_layout(title_x=0.5)
 
-   if sub_category_click_data:
+    if sub_category_click_data:
         selected_sub_category = sub_category_click_data['points'][0]['label']
         resolutions = filtered_data[filtered_data['SERVICE- SUB CATEGORY'] == selected_sub_category][
             'DESCRIPTION / RESOLUTION'
@@ -217,16 +206,21 @@ def update_dashboard(selected_categories, click_data):
     else:
         resolutions_list = html.Div("Click on a sub-category to see resolutions.")
 
+    fig_sub_category_bar = px.bar(sub_category_counts, x="SERVICE- SUB CATEGORY", y="Count",
+                                  title="Sub-Service Categories", text="Count", template="plotly_dark")
+    fig_sub_category_bar.update_traces(marker_color="royalblue")
+    fig_sub_category_bar.update_layout(title_x=0.5)
+
     return (
-            fig_calls_over_time,
-            fig_category_distribution,
-            fig_sub_category_bar,
-            resolutions_list,
-            str(total_calls),
-            str(unique_issues),
-            str(service_cat),
-            f"{avg_calls_day:.2f}",
-        )
+        fig_calls_over_time,
+        fig_category_distribution,
+        fig_sub_category_bar,
+        resolutions_list,
+        str(total_calls),
+        str(service_cat),
+        str(unique_issues),
+        f"{avg_calls_day:.2f}",
+    )
 
 
 if __name__ == "__main__":

@@ -95,10 +95,18 @@ app.layout = dbc.Container([
     ], className="mb-4"),
 
     dbc.Row([
-        dbc.Col(dcc.Loading(dcc.Graph(id="sub-category-bar"), type="circle"), width=6),
-        dbc.Col(dcc.Loading(html.Div(id='word-cloud', style={'text-align': 'center'}), type="circle"), width=6),
-    ]),
-], fluid=True)
+    dbc.Col(dcc.Loading(dcc.Graph(id="sub-category-bar"), type="circle"), width=6),
+    dbc.Col(html.Div(id='resolutions-list', style={
+        'border': '1px solid #ccc',
+        'padding': '15px',
+        'border-radius': '10px',
+        'height': '400px',
+        'overflow-y': 'scroll',
+        'background-color': '#f8f9fa',
+        'color': '#212529'
+    }), width=6),
+], className="my-4")
+
 
 # Global variable to store data
 data = pd.DataFrame()
@@ -139,14 +147,16 @@ def handle_file_upload(contents, filename):
         Output("calls-over-time", "figure"),
         Output("category-distribution", "figure"),
         Output("sub-category-bar", "figure"),
-        Output("word-cloud", "children"),
+        Output("resolutions-list", "children"),
         Output("total-calls", "children"),
         Output("service_cat", "children"),
         Output("unique-issues", "children"),
         Output("avg-calls-day", "children"),
     ],
     [Input("category-dropdown", "value"),
-     Input("category-distribution", "clickData")]
+     Input("category-distribution", "clickData"),
+     Input("sub-category-bar", "clickData"),
+]
 )
 def update_dashboard(selected_categories, click_data):
     global data
@@ -195,21 +205,23 @@ def update_dashboard(selected_categories, click_data):
     fig_sub_category_bar.update_traces(marker_color="royalblue")
     fig_sub_category_bar.update_layout(title_x=0.5)
 
-    # Word Cloud for Description / Resolution
-    wordcloud = WordCloud(width=800, height=400, background_color="black", colormap='coolwarm').generate(
-        " ".join(filtered_data['DESCRIPTION / RESOLUTION']))
-    img = BytesIO()
-    wordcloud.to_image().save(img, format='PNG')
-    word_cloud_img = base64.b64encode(img.getvalue()).decode()
-    word_cloud_element = html.Img(src="data:image/png;base64,{}".format(word_cloud_img), 
-                                  style={'width': '100%', 'border-radius': '10px'})
-
+   if sub_category_click_data:
+        selected_sub_category = sub_category_click_data['points'][0]['label']
+        resolutions = filtered_data[filtered_data['SERVICE- SUB CATEGORY'] == selected_sub_category][
+            'DESCRIPTION / RESOLUTION'
+        ].tolist()
+        resolutions_list = html.Ul(
+            [html.Li(resolution, style={'margin-bottom': '10px'}) for resolution in resolutions],
+            style={'list-style-type': 'circle'}
+        )
+    else:
+        resolutions_list = html.Div("Click on a sub-category to see resolutions.")
 
     return (
             fig_calls_over_time,
             fig_category_distribution,
             fig_sub_category_bar,
-            word_cloud_element,
+            resolutions_list,
             str(total_calls),
             str(unique_issues),
             str(service_cat),

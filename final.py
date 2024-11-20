@@ -76,7 +76,7 @@ app.layout = dbc.Container([
         ], className="shadow-sm"), width=3),
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Unique Issues", className="card-title"),
+                html.H5("Sub-Service categories", className="card-title"),
                 html.H3(id="unique-issues", className="text-info")
             ])
         ], className="shadow-sm"), width=3),

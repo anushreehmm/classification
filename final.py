@@ -43,18 +43,7 @@ app.layout = dbc.Container([
         dbc.Col(html.Div(id='date-range-info', className="text-center text-secondary fw-bold"), width=12)
     ], className="mb-4"),
 
-    # Filters Row
-    dbc.Row([
-        dbc.Col([
-            html.Label("Select Service Category:", className="fw-bold"),
-            dcc.Dropdown(
-                id='category-dropdown',
-                placeholder="Select a category",
-                multi=True,
-                style={'color': '#000'}
-            )
-        ], width=6),
-    ], className="my-4"),
+    # Filters Ro
 
     # KPIs Row
     dbc.Row([
@@ -114,8 +103,6 @@ data = pd.DataFrame()
     [
         Output('upload-status', 'children'),
         Output('date-range-info', 'children'),
-        Output('category-dropdown', 'options'),
-        Output('category-dropdown', 'value')
     ],
     Input('upload-data', 'contents'),
     State('upload-data', 'filename')
@@ -152,7 +139,6 @@ def handle_file_upload(contents, filename):
         Output("avg-calls-day", "children"),
     ],
     [
-        Input("category-dropdown", "value"),
         Input("category-distribution", "clickData"),
         Input("sub-category-bar", "clickData"),
     ]

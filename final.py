@@ -104,7 +104,7 @@ app.layout = dbc.Container([
             'background-color': '#f8f9fa',
             'color': '#212529'
         }), width=6)
-    ], className="mb-4")]
+    ], className="mb-4")])
 
 # Global variable to store data
 data = pd.DataFrame()

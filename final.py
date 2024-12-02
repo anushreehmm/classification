@@ -90,13 +90,11 @@ app.layout = dbc.Container([
     ], className="mb-4"),
     
     dbc.Row([
-        dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=6),
+        dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=12),
     ], className="mb-4"),
     # Graphs Row with Loading Spinners
     dbc.Row([
         dbc.Col(dcc.Loading(dcc.Graph(id="sub-category-bar"), type="circle"), width=6),
-    ], className="mb-4"),
-    dbc.Row([
         dbc.Col(html.Div(id='resolutions-list', style={
             'border': '1px solid #ccc',
             'padding': '15px',
@@ -105,9 +103,8 @@ app.layout = dbc.Container([
             'overflow-y': 'scroll',
             'background-color': '#f8f9fa',
             'color': '#212529'
-        }), width=6),
-    ], className="my-4"),
-])
+        }), width=6)
+    ], className="mb-4")
 
 # Global variable to store data
 data = pd.DataFrame()

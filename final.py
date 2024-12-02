@@ -86,12 +86,17 @@ app.layout = dbc.Container([
 
     # Graphs Row with Loading Spinners
     dbc.Row([
-        dbc.Col(dcc.Loading(dcc.Graph(id="calls-over-time"), type="circle"), width=3),
-        dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=9),
+        dbc.Col(dcc.Loading(dcc.Graph(id="calls-over-time"), type="circle"), width=12),
     ], className="mb-4"),
-
+    
+    dbc.Row([
+        dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=6),
+    ], className="mb-4"),
+    # Graphs Row with Loading Spinners
     dbc.Row([
         dbc.Col(dcc.Loading(dcc.Graph(id="sub-category-bar"), type="circle"), width=6),
+    ], className="mb-4"),
+    dbc.Row([
         dbc.Col(html.Div(id='resolutions-list', style={
             'border': '1px solid #ccc',
             'padding': '15px',

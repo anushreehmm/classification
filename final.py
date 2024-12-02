@@ -179,7 +179,7 @@ def update_dashboard(selected_categories, category_click_data, sub_category_clic
     avg_calls_day = round(daily_calls.mean(), 2)
 
     # Total Calls Over Time
-    calls_over_time = filtered_data.groupby(filtered_data['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
+    calls_over_time = filtered_data[filtered_data['DATE'].dt.year == 2024].groupby(filtered_data['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
     calls_over_time['DATE'] = calls_over_time['DATE'].dt.to_timestamp()
     fig_calls_over_time = px.line(calls_over_time, x="DATE", y="Total Calls", title="Total Calls Over Time",
                                   markers=True, line_shape="spline", template="plotly_dark")

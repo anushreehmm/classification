@@ -98,6 +98,7 @@ app.layout = dbc.Container([
 ])
 
 # Callback to process uploaded file and store data
+# Callback to process uploaded file and store data
 @app.callback(
     [
         Output('upload-status', 'children'),
@@ -119,10 +120,10 @@ def handle_file_upload(contents, filename):
         
         # Select relevant columns and drop NaN values
         df = df[['DATE', 'SERVICE CATEGORY', 'SERVICE- SUB CATEGORY', 'DESCRIPTION / RESOLUTION']].dropna()
-        
-        # Convert the DATE column to datetime
-        df['DATE'] = pd.to_datetime(df['DATE'])
-        
+
+        # Ensure 'DATE' column is in datetime format, forcing errors to NaT
+        df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
+
         # Filter rows to keep only dates from 2024 onwards
         df = df[df['DATE'].dt.year >= 2024]
 
@@ -135,6 +136,7 @@ def handle_file_upload(contents, filename):
         return f"File '{filename}' uploaded successfully!", date_range_info, df.to_dict('records')
     except Exception as e:
         return f"Error processing file: {str(e)}", "", None
+
 
 # Callback to update graphs and KPIs based on stored data
 @app.callback(

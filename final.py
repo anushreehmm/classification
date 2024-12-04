@@ -150,7 +150,7 @@ def update_dashboard(stored_data):
     unique_issues = df['SERVICE- SUB CATEGORY'].nunique()
     daily_calls = df.groupby('DATE').size()
     avg_calls_day = round(daily_calls.mean(), 2)
-
+    df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
     calls_over_time = df.groupby(df['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
     calls_over_time['DATE'] = calls_over_time['DATE'].dt.to_timestamp()
     fig_calls_over_time = px.line(calls_over_time, x="DATE", y="Total Calls", title="Total Calls Over Time",

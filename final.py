@@ -46,7 +46,7 @@ app.layout = dbc.Container([
                     'textAlign': 'center'
                 },
                 multiple=False
-)
+                )
 
             ),
             html.Div(id='upload-status', className="text-center text-info my-2")

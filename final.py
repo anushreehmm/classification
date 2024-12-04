@@ -46,12 +46,12 @@ app.layout = dbc.Container([
                     'textAlign': 'center'
                 },
                 multiple=False
-                )
-
-            ),
+            ),  # Corrected placement of this parenthesis
             html.Div(id='upload-status', className="text-center text-info my-2")
         ])
-    ]),
+    ])
+])
+
 
     # Store to hold uploaded data
     dcc.Store(id='stored-data', storage_type='memory'),

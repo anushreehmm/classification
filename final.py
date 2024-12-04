@@ -12,8 +12,7 @@ import os
 # Initialize the app with a Bootstrap theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
 
-
-# Add a dcc.Store component to the layout
+# Define the app layout
 app.layout = dbc.Container([
     # Title
     dbc.Row(dbc.Col(html.H1("Hotel Calls Report Dashboard", className="text-center text-primary my-4"))),
@@ -98,7 +97,6 @@ app.layout = dbc.Container([
 ])
 
 # Callback to process uploaded file and store data
-# Callback to process uploaded file and store data
 @app.callback(
     [
         Output('upload-status', 'children'),
@@ -113,32 +111,22 @@ def handle_file_upload(contents, filename):
         return "No file uploaded yet.", "", None
     
     try:
-        # Decode the uploaded file
         content_type, content_string = contents.split(',')
         decoded = base64.b64decode(content_string)
         df = pd.read_excel(BytesIO(decoded))
-        
-        # Select relevant columns and drop NaN values
         df = df[['DATE', 'SERVICE CATEGORY', 'SERVICE- SUB CATEGORY', 'DESCRIPTION / RESOLUTION']].dropna()
-
-        # Ensure 'DATE' column is in datetime format, forcing errors to NaT
         df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
-
-        # Filter rows to keep only dates from 2024 onwards
         df = df[df['DATE'].dt.year >= 2024]
 
         if df.empty:
             return f"No valid data from 2024 in '{filename}'. Please upload a suitable file.", "", None
 
-        # Generate the date range information
         date_range_info = f"Data available from {df['DATE'].min().strftime('%Y-%m-%d')} to {df['DATE'].max().strftime('%Y-%m-%d')}"
-        
         return f"File '{filename}' uploaded successfully!", date_range_info, df.to_dict('records')
     except Exception as e:
         return f"Error processing file: {str(e)}", "", None
 
-
-# Callback to update graphs and KPIs based on stored data
+# Callback to update graphs and KPIs
 @app.callback(
     [
         Output("calls-over-time", "figure"),
@@ -150,37 +138,31 @@ def handle_file_upload(contents, filename):
         Output("unique-issues", "children"),
         Output("avg-calls-day", "children"),
     ],
-    Input('stored-data', 'data')  # Trigger update when stored data changes
+    Input('stored-data', 'data')
 )
 def update_dashboard(stored_data):
     if not stored_data:
         return {}, {}, {}, html.Div("No data available"), "0", "0", "0", "0.0"
     
-    # Convert stored data back to DataFrame
     df = pd.DataFrame(stored_data)
-
-    # Perform calculations and visualizations
     total_calls = len(df)
     service_cat = df['SERVICE CATEGORY'].nunique()
     unique_issues = df['SERVICE- SUB CATEGORY'].nunique()
     daily_calls = df.groupby('DATE').size()
     avg_calls_day = round(daily_calls.mean(), 2)
 
-    # Total Calls Over Time
     calls_over_time = df.groupby(df['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
     calls_over_time['DATE'] = calls_over_time['DATE'].dt.to_timestamp()
     fig_calls_over_time = px.line(calls_over_time, x="DATE", y="Total Calls", title="Total Calls Over Time",
                                   markers=True, line_shape="spline", template="plotly_dark")
     fig_calls_over_time.update_layout(hovermode="x unified", title_x=0.5)
 
-    # Service Category Distribution (Pie Chart)
     category_counts = df['SERVICE CATEGORY'].value_counts().reset_index()
     category_counts.columns = ['SERVICE CATEGORY', 'Count']
     fig_category_distribution = px.pie(category_counts, values="Count", names="SERVICE CATEGORY",
                                        title="Service Category Distribution", template="plotly_dark")
-    fig_category_distribution.update_traces(textinfo="percent+label", pull=[0.05 for _ in category_counts['SERVICE CATEGORY']])
+    fig_category_distribution.update_traces(textinfo="percent+label", pull=[0.05] * len(category_counts))
 
-    # Sub-Service Category Bar Chart
     sub_category_counts = df['SERVICE- SUB CATEGORY'].value_counts().reset_index()
     sub_category_counts.columns = ['SERVICE- SUB CATEGORY', 'Count']
     fig_sub_category_bar = px.bar(sub_category_counts, x="SERVICE- SUB CATEGORY", y="Count",
@@ -188,7 +170,6 @@ def update_dashboard(stored_data):
     fig_sub_category_bar.update_traces(marker_color="royalblue")
     fig_sub_category_bar.update_layout(title_x=0.5)
 
-    # Resolutions
     resolutions_list = html.Ul([html.Li(resolution) for resolution in df['DESCRIPTION / RESOLUTION'].unique()])
     
     return (
@@ -204,5 +185,5 @@ def update_dashboard(stored_data):
 
 # Run the app
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8050))  # Default to 8050 if no port is specified
+    port = int(os.environ.get("PORT", 8050))
     app.run_server(host="0.0.0.0", port=port)

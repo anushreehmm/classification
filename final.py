@@ -39,6 +39,9 @@ app.layout = dbc.Container([
         ])
     ]),
 
+    # Hidden Store for Data
+    dcc.Store(id='stored-data'),
+
     # Displaying Date Range Information
     dbc.Row([
         dbc.Col(html.Div(id='date-range-info', className="text-center text-secondary fw-bold"), width=12)
@@ -93,12 +96,10 @@ app.layout = dbc.Container([
     ], className="mb-4")
 ])
 
-# Global variable to store data
-data = pd.DataFrame()
-
 # Callbacks
 @app.callback(
     [
+        Output('stored-data', 'data'),
         Output('upload-status', 'children'),
         Output('date-range-info', 'children'),
     ],
@@ -106,35 +107,32 @@ data = pd.DataFrame()
     State('upload-data', 'filename')
 )
 def handle_file_upload(contents, filename):
-    global data
     if contents is None:
-        return "No file uploaded yet.", ""
+        return None, "No file uploaded yet.", ""
     
     try:
         # Decode the uploaded file
         content_type, content_string = contents.split(',')
         decoded = base64.b64decode(content_string)
-        data = pd.read_excel(BytesIO(decoded))
+        df = pd.read_excel(BytesIO(decoded))
         
         # Select relevant columns and drop NaN values
-        data = data[['DATE', 'SERVICE CATEGORY', 'SERVICE- SUB CATEGORY', 'DESCRIPTION / RESOLUTION']].dropna()
+        df = df[['DATE', 'SERVICE CATEGORY', 'SERVICE- SUB CATEGORY', 'DESCRIPTION / RESOLUTION']].dropna()
         
         # Convert the DATE column to datetime
-        data['DATE'] = pd.to_datetime(data['DATE'])
+        df['DATE'] = pd.to_datetime(df['DATE'])
         
         # Filter rows to keep only dates from 2024 onwards
-        data = data[data['DATE'].dt.year >= 2024]
+        df = df[df['DATE'].dt.year >= 2024]
 
-        if data.empty:
-            return f"No valid data from 2024 in '{filename}'. Please upload a suitable file.", ""
+        if df.empty:
+            return None, f"No valid data from 2024 in '{filename}'. Please upload a suitable file.", ""
 
         # Generate the date range information
-        date_range_info = f"Data available from {data['DATE'].min().strftime('%Y-%m-%d')} to {data['DATE'].max().strftime('%Y-%m-%d')}"
-        return f"File '{filename}' uploaded successfully!", date_range_info
+        date_range_info = f"Data available from {df['DATE'].min().strftime('%Y-%m-%d')} to {df['DATE'].max().strftime('%Y-%m-%d')}"
+        return df.to_dict('records'), f"File '{filename}' uploaded successfully!", date_range_info
     except Exception as e:
-        return f"Error processing file: {str(e)}", ""
-
-
+        return None, f"Error processing file: {str(e)}", ""
 
 @app.callback(
     [

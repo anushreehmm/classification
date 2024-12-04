@@ -1,18 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-import pandas as pd
-from dash import Dash, dcc, html, Input, Output, State
-import plotly.express as px
-import dash_bootstrap_components as dbc
-from io import BytesIO
-import base64
-import os
-
-# Initialize the app with a Bootstrap theme
-app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
-
-# Layout
+# Add a dcc.Store component to the layout
 app.layout = dbc.Container([
     # Title
     dbc.Row(dbc.Col(html.H1("Hotel Calls Report Dashboard", className="text-center text-primary my-4"))),
@@ -39,8 +25,8 @@ app.layout = dbc.Container([
         ])
     ]),
 
-    # Hidden Store for Data
-    dcc.Store(id='stored-data'),
+    # Store to hold uploaded data
+    dcc.Store(id='stored-data', storage_type='memory'),
 
     # Displaying Date Range Information
     dbc.Row([
@@ -96,19 +82,19 @@ app.layout = dbc.Container([
     ], className="mb-4")
 ])
 
-# Callbacks
+# Callback to process uploaded file and store data
 @app.callback(
     [
-        Output('stored-data', 'data'),
         Output('upload-status', 'children'),
         Output('date-range-info', 'children'),
+        Output('stored-data', 'data')
     ],
     Input('upload-data', 'contents'),
     State('upload-data', 'filename')
 )
 def handle_file_upload(contents, filename):
     if contents is None:
-        return None, "No file uploaded yet.", ""
+        return "No file uploaded yet.", "", None
     
     try:
         # Decode the uploaded file
@@ -126,14 +112,16 @@ def handle_file_upload(contents, filename):
         df = df[df['DATE'].dt.year >= 2024]
 
         if df.empty:
-            return None, f"No valid data from 2024 in '{filename}'. Please upload a suitable file.", ""
+            return f"No valid data from 2024 in '{filename}'. Please upload a suitable file.", "", None
 
         # Generate the date range information
         date_range_info = f"Data available from {df['DATE'].min().strftime('%Y-%m-%d')} to {df['DATE'].max().strftime('%Y-%m-%d')}"
-        return df.to_dict('records'), f"File '{filename}' uploaded successfully!", date_range_info
+        
+        return f"File '{filename}' uploaded successfully!", date_range_info, df.to_dict('records')
     except Exception as e:
-        return None, f"Error processing file: {str(e)}", ""
+        return f"Error processing file: {str(e)}", "", None
 
+# Callback to update graphs and KPIs based on stored data
 @app.callback(
     [
         Output("calls-over-time", "figure"),
@@ -154,7 +142,7 @@ def update_dashboard(stored_data):
     # Convert stored data back to DataFrame
     df = pd.DataFrame(stored_data)
 
-    # Perform calculations and visualizations (same as before)
+    # Perform calculations and visualizations
     total_calls = len(df)
     service_cat = df['SERVICE CATEGORY'].nunique()
     unique_issues = df['SERVICE- SUB CATEGORY'].nunique()
@@ -184,7 +172,7 @@ def update_dashboard(stored_data):
     fig_sub_category_bar.update_layout(title_x=0.5)
 
     # Resolutions
-    resolutions_list = html.Div("Click on a sub-category to see resolutions.")
+    resolutions_list = html.Ul([html.Li(resolution) for resolution in df['DESCRIPTION / RESOLUTION'].unique()])
     
     return (
         fig_calls_over_time,
@@ -196,7 +184,6 @@ def update_dashboard(stored_data):
         str(unique_issues),
         f"{avg_calls_day:.2f}",
     )
-
 
 # Run the app
 if __name__ == "__main__":

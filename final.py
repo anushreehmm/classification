@@ -22,18 +22,32 @@ app.layout = dbc.Container([
         dbc.Col([
             dcc.Upload(
                 id='upload-data',
-                children=html.Div(['Drag and Drop or ', html.A('Select an Excel File')]),
+                children=html.Div([
+                    html.Button(
+                        'Upload Excel File',
+                        id='upload-button',
+                        style={
+                            'padding': '15px 30px',
+                            'fontSize': '16px',
+                            'color': '#fff',
+                            'backgroundColor': '#007bff',
+                            'border': 'none',
+                            'borderRadius': '8px',
+                            'cursor': 'pointer',
+                            'transition': 'all 0.3s ease-in-out'
+                        }
+                    )
+                ]),
                 style={
-                    'width': '50%',
-                    'height': '60px',
-                    'lineHeight': '60px',
-                    'borderWidth': '1px',
-                    'borderStyle': 'dashed',
-                    'borderRadius': '5px',
-                    'textAlign': 'center',
-                    'margin': '10px'
+                    'display': 'flex',
+                    'justifyContent': 'center',
+                    'alignItems': 'center',
+                    'margin': '20px',
+                    'textAlign': 'center'
                 },
                 multiple=False
+)
+
             ),
             html.Div(id='upload-status', className="text-center text-info my-2")
         ])

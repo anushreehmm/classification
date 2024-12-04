@@ -24,7 +24,7 @@ app.layout = dbc.Container([
                 id='upload-data',
                 children=html.Div(['Drag and Drop or ', html.A('Select an Excel File')]),
                 style={
-                    'width': '100%',
+                    'width': '50%',
                     'height': '60px',
                     'lineHeight': '60px',
                     'borderWidth': '1px',

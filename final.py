@@ -111,16 +111,29 @@ def handle_file_upload(contents, filename):
         return "No file uploaded yet.", ""
     
     try:
+        # Decode the uploaded file
         content_type, content_string = contents.split(',')
         decoded = base64.b64decode(content_string)
         data = pd.read_excel(BytesIO(decoded))
+        
+        # Select relevant columns and drop NaN values
         data = data[['DATE', 'SERVICE CATEGORY', 'SERVICE- SUB CATEGORY', 'DESCRIPTION / RESOLUTION']].dropna()
+        
+        # Convert the DATE column to datetime
         data['DATE'] = pd.to_datetime(data['DATE'])
+        
+        # Filter rows to keep only dates from 2024 onwards
+        data = data[data['DATE'].dt.year >= 2024]
 
+        if data.empty:
+            return f"No valid data from 2024 in '{filename}'. Please upload a suitable file.", ""
+
+        # Generate the date range information
         date_range_info = f"Data available from {data['DATE'].min().strftime('%Y-%m-%d')} to {data['DATE'].max().strftime('%Y-%m-%d')}"
         return f"File '{filename}' uploaded successfully!", date_range_info
     except Exception as e:
         return f"Error processing file: {str(e)}", ""
+
 
 
 @app.callback(

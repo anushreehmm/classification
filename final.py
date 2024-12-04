@@ -4,16 +4,17 @@
 import pandas as pd
 from dash import Dash, dcc, html, Input, Output, State
 import plotly.express as px
+import dash_bootstrap_components as dbc
 from io import BytesIO
 import base64
-import dash_bootstrap_components as dbc
 import os
 
-# Initialize the app with a theme
+# Initialize the app with a Bootstrap theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
 
 # Layout
 app.layout = dbc.Container([
+    # Title
     dbc.Row(dbc.Col(html.H1("Hotel Calls Report Dashboard", className="text-center text-primary my-4"))),
 
     # File Upload Section
@@ -43,8 +44,6 @@ app.layout = dbc.Container([
         dbc.Col(html.Div(id='date-range-info', className="text-center text-secondary fw-bold"), width=12)
     ], className="mb-4"),
 
-    # Filters Ro
-
     # KPIs Row
     dbc.Row([
         dbc.Col(dbc.Card([
@@ -73,15 +72,13 @@ app.layout = dbc.Container([
         ], className="shadow-sm"), width=3),
     ], className="my-4"),
 
-    # Graphs Row with Loading Spinners
+    # Graphs Section
     dbc.Row([
         dbc.Col(dcc.Loading(dcc.Graph(id="calls-over-time"), type="circle"), width=12),
     ], className="mb-4"),
-    
     dbc.Row([
         dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=12),
     ], className="mb-4"),
-    # Graphs Row with Loading Spinners
     dbc.Row([
         dbc.Col(dcc.Loading(dcc.Graph(id="sub-category-bar"), type="circle"), width=6),
         dbc.Col(html.Div(id='resolutions-list', style={
@@ -92,8 +89,9 @@ app.layout = dbc.Container([
             'overflow-y': 'scroll',
             'background-color': '#f8f9fa',
             'color': '#212529'
-        }), width=6)
-    ], className="mb-4")])
+        }), width=6),
+    ], className="mb-4")
+])
 
 # Global variable to store data
 data = pd.DataFrame()
@@ -110,7 +108,7 @@ data = pd.DataFrame()
 def handle_file_upload(contents, filename):
     global data
     if contents is None:
-        return "No file uploaded yet.", "", [], None
+        return "No file uploaded yet.", ""
     
     try:
         content_type, content_string = contents.split(',')
@@ -120,11 +118,9 @@ def handle_file_upload(contents, filename):
         data['DATE'] = pd.to_datetime(data['DATE'])
 
         date_range_info = f"Data available from {data['DATE'].min().strftime('%Y-%m-%d')} to {data['DATE'].max().strftime('%Y-%m-%d')}"
-        category_options = [{'label': 'All', 'value': 'All'}] + [{'label': cat, 'value': cat} for cat in data['SERVICE CATEGORY'].unique()]
-
-        return f"File '{filename}' uploaded successfully!", date_range_info, category_options, None
+        return f"File '{filename}' uploaded successfully!", date_range_info
     except Exception as e:
-        return f"Error processing file: {str(e)}", "", [], None
+        return f"Error processing file: {str(e)}", ""
 
 
 @app.callback(
@@ -143,21 +139,18 @@ def handle_file_upload(contents, filename):
         Input("sub-category-bar", "clickData"),
     ]
 )
-def update_dashboard(selected_categories, category_click_data, sub_category_click_data):
+def update_dashboard(category_click_data, sub_category_click_data):
     global data
     if data.empty:
         return {}, {}, {}, html.Div("No data available"), "0", "0", "0", "0.0"
 
-    # Handle click on the pie chart
+    # Filter Data Based on Clicks
+    filtered_data = data
     if category_click_data:
         selected_service_category = category_click_data['points'][0]['label']
         filtered_data = data[data['SERVICE CATEGORY'] == selected_service_category]
-    elif selected_categories and "All" not in selected_categories:
-        filtered_data = data[data['SERVICE CATEGORY'].isin(selected_categories)]
-    else:
-        filtered_data = data
 
-    # KPI Calculations
+    # KPIs
     total_calls = len(filtered_data)
     service_cat = filtered_data['SERVICE CATEGORY'].nunique()
     unique_issues = filtered_data['SERVICE- SUB CATEGORY'].nunique()
@@ -165,7 +158,7 @@ def update_dashboard(selected_categories, category_click_data, sub_category_clic
     avg_calls_day = round(daily_calls.mean(), 2)
 
     # Total Calls Over Time
-    calls_over_time = filtered_data[filtered_data['DATE'].dt.year == 2024].groupby(filtered_data['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
+    calls_over_time = filtered_data.groupby(filtered_data['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
     calls_over_time['DATE'] = calls_over_time['DATE'].dt.to_timestamp()
     fig_calls_over_time = px.line(calls_over_time, x="DATE", y="Total Calls", title="Total Calls Over Time",
                                   markers=True, line_shape="spline", template="plotly_dark")
@@ -176,28 +169,23 @@ def update_dashboard(selected_categories, category_click_data, sub_category_clic
     category_counts.columns = ['SERVICE CATEGORY', 'Count']
     fig_category_distribution = px.pie(category_counts, values="Count", names="SERVICE CATEGORY",
                                        title="Service Category Distribution", template="plotly_dark")
-    fig_category_distribution.update_traces(textinfo="percent+label", pull=[0.05 for _ in category_counts['SERVICE CATEGORY']])
 
     # Sub-Service Category Bar Chart
     sub_category_counts = filtered_data['SERVICE- SUB CATEGORY'].value_counts().reset_index()
     sub_category_counts.columns = ['SERVICE- SUB CATEGORY', 'Count']
 
+    resolutions_list = html.Div("Click on a sub-category to see resolutions.")
     if sub_category_click_data:
         selected_sub_category = sub_category_click_data['points'][0]['label']
         resolutions = filtered_data[filtered_data['SERVICE- SUB CATEGORY'] == selected_sub_category][
             'DESCRIPTION / RESOLUTION'
         ].tolist()
         resolutions_list = html.Ul(
-            [html.Li(resolution, style={'margin-bottom': '10px'}) for resolution in resolutions],
-            style={'list-style-type': 'circle'}
+            [html.Li(resolution, style={'margin-bottom': '10px'}) for resolution in resolutions]
         )
-    else:
-        resolutions_list = html.Div("Click on a sub-category to see resolutions.")
 
     fig_sub_category_bar = px.bar(sub_category_counts, x="SERVICE- SUB CATEGORY", y="Count",
                                   title="Sub-Service Categories", text="Count", template="plotly_dark")
-    fig_sub_category_bar.update_traces(marker_color="royalblue")
-    fig_sub_category_bar.update_layout(title_x=0.5)
 
     return (
         fig_calls_over_time,
@@ -211,11 +199,7 @@ def update_dashboard(selected_categories, category_click_data, sub_category_clic
     )
 
 
+# Run the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8050))  # Default to 8050 if no port is specified
     app.run_server(host="0.0.0.0", port=port)
-
-
-# In[ ]:
-
-

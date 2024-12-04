@@ -1,3 +1,18 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+import pandas as pd
+from dash import Dash, dcc, html, Input, Output, State
+import plotly.express as px
+import dash_bootstrap_components as dbc
+from io import BytesIO
+import base64
+import os
+
+# Initialize the app with a Bootstrap theme
+app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
+
+
 # Add a dcc.Store component to the layout
 app.layout = dbc.Container([
     # Title

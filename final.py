@@ -147,59 +147,47 @@ def handle_file_upload(contents, filename):
         Output("unique-issues", "children"),
         Output("avg-calls-day", "children"),
     ],
-    [
-        Input("category-distribution", "clickData"),
-        Input("sub-category-bar", "clickData"),
-    ]
+    Input('stored-data', 'data')  # Trigger update when stored data changes
 )
-def update_dashboard(category_click_data, sub_category_click_data):
-    global data
-    if data.empty:
+def update_dashboard(stored_data):
+    if not stored_data:
         return {}, {}, {}, html.Div("No data available"), "0", "0", "0", "0.0"
+    
+    # Convert stored data back to DataFrame
+    df = pd.DataFrame(stored_data)
 
-    # Filter Data Based on Clicks
-    filtered_data = data
-    if category_click_data:
-        selected_service_category = category_click_data['points'][0]['label']
-        filtered_data = data[data['SERVICE CATEGORY'] == selected_service_category]
-
-    # KPIs
-    total_calls = len(filtered_data)
-    service_cat = filtered_data['SERVICE CATEGORY'].nunique()
-    unique_issues = filtered_data['SERVICE- SUB CATEGORY'].nunique()
-    daily_calls = filtered_data.groupby('DATE').size()
+    # Perform calculations and visualizations (same as before)
+    total_calls = len(df)
+    service_cat = df['SERVICE CATEGORY'].nunique()
+    unique_issues = df['SERVICE- SUB CATEGORY'].nunique()
+    daily_calls = df.groupby('DATE').size()
     avg_calls_day = round(daily_calls.mean(), 2)
 
     # Total Calls Over Time
-    calls_over_time = filtered_data.groupby(filtered_data['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
+    calls_over_time = df.groupby(df['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
     calls_over_time['DATE'] = calls_over_time['DATE'].dt.to_timestamp()
     fig_calls_over_time = px.line(calls_over_time, x="DATE", y="Total Calls", title="Total Calls Over Time",
                                   markers=True, line_shape="spline", template="plotly_dark")
     fig_calls_over_time.update_layout(hovermode="x unified", title_x=0.5)
 
     # Service Category Distribution (Pie Chart)
-    category_counts = data['SERVICE CATEGORY'].value_counts().reset_index()
+    category_counts = df['SERVICE CATEGORY'].value_counts().reset_index()
     category_counts.columns = ['SERVICE CATEGORY', 'Count']
     fig_category_distribution = px.pie(category_counts, values="Count", names="SERVICE CATEGORY",
                                        title="Service Category Distribution", template="plotly_dark")
+    fig_category_distribution.update_traces(textinfo="percent+label", pull=[0.05 for _ in category_counts['SERVICE CATEGORY']])
 
     # Sub-Service Category Bar Chart
-    sub_category_counts = filtered_data['SERVICE- SUB CATEGORY'].value_counts().reset_index()
+    sub_category_counts = df['SERVICE- SUB CATEGORY'].value_counts().reset_index()
     sub_category_counts.columns = ['SERVICE- SUB CATEGORY', 'Count']
-
-    resolutions_list = html.Div("Click on a sub-category to see resolutions.")
-    if sub_category_click_data:
-        selected_sub_category = sub_category_click_data['points'][0]['label']
-        resolutions = filtered_data[filtered_data['SERVICE- SUB CATEGORY'] == selected_sub_category][
-            'DESCRIPTION / RESOLUTION'
-        ].tolist()
-        resolutions_list = html.Ul(
-            [html.Li(resolution, style={'margin-bottom': '10px'}) for resolution in resolutions]
-        )
-
     fig_sub_category_bar = px.bar(sub_category_counts, x="SERVICE- SUB CATEGORY", y="Count",
                                   title="Sub-Service Categories", text="Count", template="plotly_dark")
+    fig_sub_category_bar.update_traces(marker_color="royalblue")
+    fig_sub_category_bar.update_layout(title_x=0.5)
 
+    # Resolutions
+    resolutions_list = html.Div("Click on a sub-category to see resolutions.")
+    
     return (
         fig_calls_over_time,
         fig_category_distribution,

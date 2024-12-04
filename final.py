@@ -73,11 +73,10 @@ app.layout = dbc.Container([
 
     # Graphs Row with Loading Spinners
     dbc.Row([
-        dbc.Col(dcc.Loading(dcc.Graph(id="calls-over-time"), type="circle"), width=12),
-    ], className="mb-4"),
-
-    dbc.Row([
         dbc.Col(dcc.Loading(dcc.Graph(id="category-distribution"), type="circle"), width=12),
+    ], className="mb-4"),
+    dbc.Row([
+        dbc.Col(dcc.Loading(dcc.Graph(id="calls-over-time"), type="circle"), width=12),
     ], className="mb-4"),
     
     dbc.Row([

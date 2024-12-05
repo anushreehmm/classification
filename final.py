@@ -150,18 +150,19 @@ def handle_file_upload(contents, filename):
         Output("unique-issues", "children"),
         Output("avg-calls-day", "children"),
     ],
-    Input('stored-data', 'data')
+    [Input('stored-data', 'data'), Input("category-distribution", "clickData")]
 )
-def update_dashboard(stored_data):
+def update_dashboard(stored_data, click_data):
     if not stored_data:
         return {}, {}, {}, html.Div("No data available"), "0", "0", "0", "0.0"
-    
+
     df = pd.DataFrame(stored_data)
     total_calls = len(df)
     service_cat = df['SERVICE CATEGORY'].nunique()
     unique_issues = df['SERVICE- SUB CATEGORY'].nunique()
     daily_calls = df.groupby('DATE').size()
     avg_calls_day = round(daily_calls.mean(), 2)
+
     df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
     calls_over_time = df.groupby(df['DATE'].dt.to_period("D")).size().reset_index(name='Total Calls')
     calls_over_time['DATE'] = calls_over_time['DATE'].dt.to_timestamp()
@@ -175,15 +176,22 @@ def update_dashboard(stored_data):
                                        title="Service Category Distribution", template="plotly_dark")
     fig_category_distribution.update_traces(textinfo="percent+label", pull=[0.05] * len(category_counts))
 
-    sub_category_counts = df['SERVICE- SUB CATEGORY'].value_counts().reset_index()
+    # Handle clickData to filter the sub-category bar chart
+    if click_data and "points" in click_data:
+        clicked_category = click_data["points"][0]["label"]
+        filtered_df = df[df['SERVICE CATEGORY'] == clicked_category]
+    else:
+        filtered_df = df
+
+    sub_category_counts = filtered_df['SERVICE- SUB CATEGORY'].value_counts().reset_index()
     sub_category_counts.columns = ['SERVICE- SUB CATEGORY', 'Count']
     fig_sub_category_bar = px.bar(sub_category_counts, x="SERVICE- SUB CATEGORY", y="Count",
                                   title="Sub-Service Categories", text="Count", template="plotly_dark")
     fig_sub_category_bar.update_traces(marker_color="royalblue")
     fig_sub_category_bar.update_layout(title_x=0.5)
 
-    resolutions_list = html.Ul([html.Li(resolution) for resolution in df['DESCRIPTION / RESOLUTION'].unique()])
-    
+    resolutions_list = html.Ul([html.Li(resolution) for resolution in filtered_df['DESCRIPTION / RESOLUTION'].unique()])
+
     return (
         fig_calls_over_time,
         fig_category_distribution,

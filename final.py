@@ -121,7 +121,7 @@ app.layout = dbc.Container([
 def handle_file_upload(contents, filename):
     if contents is None:
         return "No file uploaded yet.", "", None
-    
+
     try:
         content_type, content_string = contents.split(',')
         decoded = base64.b64decode(content_string)

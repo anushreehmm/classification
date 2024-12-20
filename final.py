@@ -52,7 +52,7 @@ app.layout = dbc.Container([
     ]),
 
     # Store to hold uploaded data
-    dcc.Store(id='stored-data', storage_type='memory'),
+dcc.Store(id='stored-data', storage_type='memory'),
 
     # Displaying Date Range Information
     dbc.Row([
@@ -150,9 +150,9 @@ def handle_file_upload(contents, filename):
         Output("unique-issues", "children"),
         Output("avg-calls-day", "children"),
     ],
-    [Input('stored-data', 'data'), Input("category-distribution", "clickData")]
+    [Input('stored-data', 'data'), Input("category-distribution", "clickData"), Input("sub-category-bar", "clickData")]
 )
-def update_dashboard(stored_data, click_data):
+def update_dashboard(stored_data, category_click_data, sub_category_click_data):
     if not stored_data:
         return {}, {}, {}, html.Div("No data available"), "0", "0", "0", "0.0"
 
@@ -176,9 +176,9 @@ def update_dashboard(stored_data, click_data):
                                        title="Service Category Distribution", template="plotly_dark")
     fig_category_distribution.update_traces(textinfo="percent+label", pull=[0.05] * len(category_counts))
 
-    # Handle clickData to filter the sub-category bar chart
-    if click_data and "points" in click_data:
-        clicked_category = click_data["points"][0]["label"]
+    # Handle category clickData to filter sub-category bar chart
+    if category_click_data and "points" in category_click_data:
+        clicked_category = category_click_data["points"][0]["label"]
         filtered_df = df[df['SERVICE CATEGORY'] == clicked_category]
     else:
         filtered_df = df
@@ -190,7 +190,14 @@ def update_dashboard(stored_data, click_data):
     fig_sub_category_bar.update_traces(marker_color="royalblue")
     fig_sub_category_bar.update_layout(title_x=0.5)
 
-    resolutions_list = html.Ul([html.Li(resolution) for resolution in filtered_df['DESCRIPTION / RESOLUTION'].unique()])
+    # Handle sub-category clickData to filter resolutions
+    if sub_category_click_data and "points" in sub_category_click_data:
+        clicked_sub_category = sub_category_click_data["points"][0]["label"]
+        resolutions_df = filtered_df[filtered_df['SERVICE- SUB CATEGORY'] == clicked_sub_category]
+    else:
+        resolutions_df = filtered_df
+
+    resolutions_list = html.Ul([html.Li(resolution) for resolution in resolutions_df['DESCRIPTION / RESOLUTION'].unique()])
 
     return (
         fig_calls_over_time,

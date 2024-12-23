@@ -1,15 +1,15 @@
 from dash import Dash
 import dash_bootstrap_components as dbc
-from layout import create_layout
+from layout import app_layout
 from callbacks import register_callbacks
 
+# Initialize the Dash app with a Bootstrap theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
-app.title = "Hotel Calls Report Dashboard"
 
 # Set the app layout
-app.layout = create_layout()
+app.layout = app_layout
 
-# Register all callbacks
+# Register the callbacks
 register_callbacks(app)
 
 if __name__ == "__main__":
